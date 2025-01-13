@@ -16,7 +16,7 @@ Gossip Semantic Search is a project designed to enable semantic search functiona
 
 ### Clone the Repository
 ```bash
-git clone <repository_url>
+git clone https://github.com/nishuastic/gossip-semantic-search
 cd gossip-semantic-search
 ```
 
