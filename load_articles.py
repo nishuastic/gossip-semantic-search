@@ -1,10 +1,11 @@
 import os
 import pickle
+
 import feedparser
-from sentence_transformers import SentenceTransformer
 import pinecone
 from dotenv import load_dotenv
 from pinecone import ServerlessSpec
+from sentence_transformers import SentenceTransformer
 
 
 def initialize_pinecone(api_key, environment, index_name, embedding_dim):
@@ -15,29 +16,33 @@ def initialize_pinecone(api_key, environment, index_name, embedding_dim):
             name=index_name,
             dimension=embedding_dim,
             metric="cosine",
-            spec=ServerlessSpec(cloud="aws", region="us-east-1")
+            spec=ServerlessSpec(cloud="aws", region="us-east-1"),
         )
         print(f"Index '{index_name}' created.")
     except pinecone.core.openapi.shared.exceptions.PineconeApiException as e:
-        if e.status == 409:  
+        if e.status == 409:
             print(f"Index creation conflict: {e.body}")
         else:
             raise
     return pc.Index(index_name)
+
 
 def fetch_articles(feed_url):
     """Fetch articles from an RSS feed."""
     articles = []
     feed = feedparser.parse(feed_url)
     for entry in feed.entries:
-        articles.append({
-            "title": entry.title,
-            "link": entry.link,
-            "published": entry.published,
-            "summary": entry.summary,
-            "content": entry.get("content", [{"value": ""}])[0]["value"]
-        })
+        articles.append(
+            {
+                "title": entry.title,
+                "link": entry.link,
+                "published": entry.published,
+                "summary": entry.summary,
+                "content": entry.get("content", [{"value": ""}])[0]["value"],
+            }
+        )
     return articles
+
 
 def load_cached_urls(log_file):
     """Load cached URLs from a pickle file."""
@@ -46,10 +51,12 @@ def load_cached_urls(log_file):
             return pickle.load(f)
     return set()
 
+
 def save_cached_urls(cached_urls, log_file):
     """Save cached URLs to a pickle file."""
     with open(log_file, "wb") as f:
         pickle.dump(cached_urls, f)
+
 
 def process_feeds_with_cache(feeds, model, index, log_file):
     """Process RSS feeds and upsert articles to Pinecone, skipping cached URLs."""
@@ -71,20 +78,23 @@ def process_feeds_with_cache(feeds, model, index, log_file):
             # Generate embeddings
             if article.get("title") and article.get("summary"):
                 article["embedding"] = model.encode(
-                    article["title"] + " " + article["summary"],
-                    convert_to_tensor=True
+                    article["title"] + " " + article["summary"], convert_to_tensor=True
                 ).tolist()
                 # Add to Pinecone
-                index.upsert([(
-                    article["link"],
-                    article["embedding"],
-                    {
-                        "title": article["title"],
-                        "summary": article["summary"],
-                        "category": article["category"],
-                        "published": article["published"]
-                    }
-                )])
+                index.upsert(
+                    [
+                        (
+                            article["link"],
+                            article["embedding"],
+                            {
+                                "title": article["title"],
+                                "summary": article["summary"],
+                                "category": article["category"],
+                                "published": article["published"],
+                            },
+                        )
+                    ]
+                )
                 # Cache the URL
                 cached_urls.add(article["link"])
                 print(f"Upserted and cached URL: {article['link']}")
@@ -94,6 +104,7 @@ def process_feeds_with_cache(feeds, model, index, log_file):
     # Save updated cache
     save_cached_urls(cached_urls, log_file)
     print("Processing completed.")
+
 
 # Main function
 def main():
@@ -120,14 +131,15 @@ def main():
         "public_people": "https://www.public.fr/people/feed",
         "public_tv": "https://www.public.fr/tele/feed",
         "public_fashion": "https://www.public.fr/mode/feed",
-        "public_royalty": "https://www.public.fr/people/familles-royales/feed"
+        "public_royalty": "https://www.public.fr/people/familles-royales/feed",
     }
 
     # Load the model
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+    model = SentenceTransformer("all-MiniLM-L6-v2")
 
     # Process feeds with caching
     process_feeds_with_cache(feeds, model, index, log_file)
+
 
 if __name__ == "__main__":
     main()

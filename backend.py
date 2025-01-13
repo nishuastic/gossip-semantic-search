@@ -1,25 +1,30 @@
+import os
+
+import pinecone
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from sentence_transformers import SentenceTransformer
-import pinecone
-import os
-from dotenv import load_dotenv
+
 load_dotenv()
 from pydantic import BaseModel
 
 app = FastAPI()
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 pc = pinecone.Pinecone(api_key=os.getenv("PINECONE_KEY"), environment="us-west1-gcp")
 index = pc.Index("gossip-semantic-search")
 
+
 class Query(BaseModel):
     query: str
+
 
 @app.post("/search")
 async def search(query: Query):
     # Assuming your embeddings are generated using a sentence-transformer model
     from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+
+    model = SentenceTransformer("all-MiniLM-L6-v2")
 
     # Generate query embedding
     query_embedding = model.encode(query.query, convert_to_tensor=True).tolist()
@@ -38,4 +43,3 @@ async def search(query: Query):
         }
         for match in results["matches"]
     ]
-

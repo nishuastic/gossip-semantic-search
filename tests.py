@@ -1,15 +1,18 @@
-import pytest
-from load_articles import initialize_pinecone, fetch_articles, process_feeds_with_cache
-from sentence_transformers import SentenceTransformer
-import pinecone
 import os
-from fastapi.testclient import TestClient
-from backend import app
-from pinecone import ServerlessSpec
 import pickle
 
+import pinecone
+import pytest
 # Load environment variables
 from dotenv import load_dotenv
+from fastapi.testclient import TestClient
+from pinecone import ServerlessSpec
+from sentence_transformers import SentenceTransformer
+
+from backend import app
+from load_articles import (fetch_articles, initialize_pinecone,
+                           process_feeds_with_cache)
+
 load_dotenv()
 
 # Configurations
@@ -34,10 +37,10 @@ def pinecone_index():
             name=INDEX_NAME,
             dimension=EMBEDDING_DIM,
             metric="cosine",
-            spec=ServerlessSpec(cloud="aws", region="us-east-1")
+            spec=ServerlessSpec(cloud="aws", region="us-east-1"),
         )
     except pinecone.core.openapi.shared.exceptions.PineconeApiException as e:
-        if e.status == 409:  
+        if e.status == 409:
             print(f"Index creation conflict: {e.body}")
         else:
             raise
@@ -47,7 +50,7 @@ def pinecone_index():
 @pytest.fixture(scope="module")
 def test_model():
     """Fixture for the SentenceTransformer model."""
-    return SentenceTransformer('all-MiniLM-L6-v2')
+    return SentenceTransformer("all-MiniLM-L6-v2")
 
 
 def test_fetch_articles():
@@ -77,18 +80,20 @@ def test_search_endpoint(pinecone_index, test_model):
 
     # Generate embeddings for testing
     embedding = test_model.encode(TEST_QUERY, convert_to_tensor=True).tolist()
-    pinecone_index.upsert([
-        (
-            "test-url",
-            embedding,
-            {
-                "title": "Test Title",
-                "summary": "Test Summary",
-                "category": "Test Category",
-                "published": "2025-01-01"
-            }
-        )
-    ])
+    pinecone_index.upsert(
+        [
+            (
+                "test-url",
+                embedding,
+                {
+                    "title": "Test Title",
+                    "summary": "Test Summary",
+                    "category": "Test Category",
+                    "published": "2025-01-01",
+                },
+            )
+        ]
+    )
 
     # Test the endpoint
     response = client.post("/search", json=query)
