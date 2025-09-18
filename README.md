@@ -11,7 +11,7 @@ Gossip Semantic Search is a project designed to enable semantic search functiona
 
 ## Installation
 ### Prerequisites
-- Python 3.8 or higher
+- Python 3.10 or higher
 - Pinecone account and API key
 
 ### Clone the Repository
@@ -20,9 +20,9 @@ git clone https://github.com/nishuastic/gossip-semantic-search
 cd gossip-semantic-search
 ```
 
-### Install Dependencies
+### Install Dependencies (uv recommended)
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 ### Environment Variables
@@ -34,22 +34,22 @@ PINECONE_KEY=<your-pinecone-api-key>
 ## Running the Application
 
 ### Step 1: Fetch and Process Articles
-Run the `load_articles.py` script to fetch articles, generate embeddings, and upload them to Pinecone.
+Run the ingestion to fetch articles, embed, and upsert to Pinecone.
 ```bash
-python load_articles.py
+uv run python -m src.load_articles
 ```
 
 ### Step 2: Start the Backend Server
 Start the FastAPI backend:
 ```bash
-uvicorn backend:app --reload
+uv run uvicorn src.backend:app --reload --port 8000
 ```
 By default, the backend will be available at `http://localhost:8000`.
 
 ### Step 3: Start the Frontend
 Run the Streamlit app:
 ```bash
-streamlit run frontend.py
+uv run streamlit run src/frontend.py
 ```
 The frontend will be available at `http://localhost:8501`.
 
@@ -59,20 +59,49 @@ The frontend will be available at `http://localhost:8501`.
 3. View the search results, which include the title, summary, category, and publication date of matching articles.
 
 ## Running Tests
-To ensure everything works as expected, run the tests:
+Run mocked tests with coverage enforced at 100% for `src` (UI omitted):
 ```bash
-pytest tests.py
+uv run pytest
 ```
 
 ## Project Structure
 ```
-├── load_articles.py  # Script for fetching and processing articles
-├── backend.py        # FastAPI backend for semantic search
-├── frontend.py       # Streamlit frontend for user interaction
-├── tests.py          # Test suite
-├── requirements.txt  # Python dependencies
-├── .env              # Environment variables
-└── README.md         # Project documentation
+├── Dockerfile
+├── start.sh
+├── pyproject.toml
+├── src/
+│   ├── backend.py        # FastAPI backend for semantic search
+│   ├── frontend.py       # Streamlit frontend for user interaction
+│   ├── load_articles.py  # Ingestion script
+│   └── main.py
+├── tests/
+│   ├── conftest.py
+│   ├── test_backend.py
+│   └── test_load_articles.py
+└── README.md
+```
+
+The app persists history and caches under `DATA_DIR` (default `data/`). In Docker we map it to a volume.
+
+Build image:
+```bash
+docker build -t gossip-app .
+```
+
+Run with a named volume (persists across restarts):
+```bash
+docker run -p 8000:8000 -p 8501:8501 \
+  -e PINECONE_KEY="YOUR_KEY" \
+  -e DATA_DIR=/data \
+  -v gossip_data:/data \
+  gossip-app
+```
+
+Open UI: http://localhost:8501
+
+Then start:
+```bash
+PINECONE_KEY=YOUR_KEY docker compose up --build
 ```
 
 ## Acknowledgements
