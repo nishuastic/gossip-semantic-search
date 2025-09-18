@@ -35,4 +35,5 @@ exclude_lines = [
 omit = [
     "src/frontend.py",
     "src/main.py",
+    "tests/*",
 ]
