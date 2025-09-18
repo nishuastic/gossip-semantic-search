@@ -67,15 +67,16 @@ st.caption(
 )
 
 # Query input
-col_q1, col_q2 = st.columns([6, 1])
-with col_q1:
-    query = st.text_input(
-        "What are you looking for?",
-        placeholder="e.g., latest on celebrity weddings",
-        label_visibility="collapsed",
-    )
-with col_q2:
-    search_clicked = st.button("Search", use_container_width=True)
+with st.form("search_form"):
+    col_q1, col_q2 = st.columns([6, 1])
+    with col_q1:
+        query = st.text_input(
+            "What are you looking for?",
+            placeholder="e.g., latest on celebrity weddings",
+            label_visibility="collapsed",
+        )
+    with col_q2:
+        search_clicked = st.form_submit_button("Search", use_container_width=True)
 
 # Search history state (load from disk on first run)
 if "history" not in st.session_state:
