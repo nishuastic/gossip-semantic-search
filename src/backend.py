@@ -5,7 +5,7 @@ import pinecone
 from fastapi import FastAPI
 from sentence_transformers import SentenceTransformer
 
-from .data_models import SearchRequest, SearchResponse, SearchResult, SearchMetrics
+from src.data_models import SearchRequest, SearchResponse, SearchResult, SearchMetrics
 from dotenv import load_dotenv
 
 load_dotenv()
