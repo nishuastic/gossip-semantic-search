@@ -1,45 +1,50 @@
 import sys
 from pathlib import Path
-import types
+import pytest
+from unittest.mock import MagicMock
 
 # Ensure project root is importable so `import src.*` works
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-# Provide a fake pinecone module to avoid import-time exceptions during tests
-if "pinecone" not in sys.modules:
-    pinecone_stub = types.ModuleType("pinecone")
 
-    class _StubPinecone:
-        def __init__(self, *args, **kwargs):
-            pass
+@pytest.fixture(autouse=True)
+def mock_heavy_imports(monkeypatch):
+    """Mock heavy imports automatically for all tests"""
 
-        def Index(self, *args, **kwargs):
-            return object()
+    # Mock pinecone module
+    mock_pinecone = MagicMock()
+    mock_pinecone_class = MagicMock()
+    mock_pinecone_class.Index.return_value = MagicMock()
+    mock_pinecone.Pinecone = mock_pinecone_class
+    mock_pinecone.ServerlessSpec = MagicMock()
+    monkeypatch.setitem(sys.modules, "pinecone", mock_pinecone)
 
-    class _StubServerlessSpec:
-        def __init__(self, *args, **kwargs):
-            pass
+    # Mock sentence_transformers module
+    mock_st = MagicMock()
+    mock_encoder = MagicMock()
 
-    pinecone_stub.Pinecone = _StubPinecone
-    pinecone_stub.ServerlessSpec = _StubServerlessSpec
-    sys.modules["pinecone"] = pinecone_stub
+    # Configure the encode method to return a mock object with tolist()
+    class MockVector:
+        def tolist(self):
+            return [0.1, 0.2, 0.3]
 
-# Provide a fake sentence_transformers module to avoid heavy imports
-if "sentence_transformers" not in sys.modules:
-    st_stub = types.ModuleType("sentence_transformers")
+    mock_encoder.encode.return_value = MockVector()
+    mock_st.SentenceTransformer.return_value = mock_encoder
+    monkeypatch.setitem(sys.modules, "sentence_transformers", mock_st)
 
-    class _StubSentenceTransformer:
-        def __init__(self, *args, **kwargs):
-            pass
+    # Mock data_models module
+    mock_data_models = MagicMock()
 
-        def encode(self, *args, **kwargs):
-            class _Vec:
-                def tolist(self_inner):
-                    return [0.1, 0.2, 0.3]
+    class StubArticle:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
 
-            return _Vec()
+    mock_data_models.Article = StubArticle
+    monkeypatch.setitem(sys.modules, "data_models", mock_data_models)
 
-    st_stub.SentenceTransformer = _StubSentenceTransformer
-    sys.modules["sentence_transformers"] = st_stub
+    # Mock feedparser
+    mock_feedparser = MagicMock()
+    monkeypatch.setitem(sys.modules, "feedparser", mock_feedparser)
