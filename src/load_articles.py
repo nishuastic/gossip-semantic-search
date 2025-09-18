@@ -2,7 +2,6 @@ import os
 import pickle
 
 import feedparser
-import pinecone
 from pinecone import Pinecone, ServerlessSpec
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
