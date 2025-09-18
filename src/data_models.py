@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
+
 class Article(BaseModel):
     title: str
     link: str
@@ -36,6 +37,7 @@ class SearchMetrics(BaseModel):
 class SearchResponse(BaseModel):
     results: List[SearchResult]
     metrics: SearchMetrics
+
 
 class Query(BaseModel):
     """Search request payload for the semantic search endpoint."""

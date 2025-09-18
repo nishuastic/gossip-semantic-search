@@ -7,7 +7,7 @@ from pinecone import Pinecone, ServerlessSpec
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 from pathlib import Path
-from src.data_models import Article
+from .data_models import Article
 
 load_dotenv()
 

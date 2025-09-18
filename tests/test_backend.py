@@ -1,14 +1,13 @@
 import json
-from unittest.mock import MagicMock, patch
-
 import pytest
 from fastapi.testclient import TestClient
+from src import backend as be
 
 
 @pytest.fixture(autouse=True)
-def patch_backend_imports(monkeypatch):
+def patch_backend_imports(mocker):
     # Mock heavy deps before importing app
-    mock_model = MagicMock()
+    mock_model = mocker.MagicMock()
 
     class _Vec:
         def tolist(self):
@@ -16,7 +15,7 @@ def patch_backend_imports(monkeypatch):
 
     mock_model.encode.return_value = _Vec()
 
-    mock_index = MagicMock()
+    mock_index = mocker.MagicMock()
     mock_index.query.return_value = {
         "matches": [
             {
@@ -43,14 +42,11 @@ def patch_backend_imports(monkeypatch):
     }
     mock_index.describe_index_stats.return_value = {"total_vector_count": 1234}
 
-    mock_pc = MagicMock()
+    mock_pc = mocker.MagicMock()
     mock_pc.Index.return_value = mock_index
 
-    with (
-        patch("src.backend.SentenceTransformer", return_value=mock_model),
-        patch("src.backend.pinecone.Pinecone", return_value=mock_pc),
-    ):
-        yield
+    mocker.patch("src.backend.SentenceTransformer", return_value=mock_model)
+    mocker.patch("src.backend.pinecone.Pinecone", return_value=mock_pc)
 
 
 def get_client():
@@ -82,17 +78,15 @@ def test_search_with_categories():
     assert data["metrics"]["filtered"] is True
 
 
-def test_search_single_category_and_stats_error(monkeypatch):
+def test_search_single_category_and_stats_error(mocker):
     # Force describe_index_stats to raise to hit exception path
-    from src import backend as be
-
     client = get_client()
 
     # Patch get_index to a MagicMock with behaviors
-    idx = MagicMock()
+    idx = mocker.MagicMock()
     idx.query.return_value = {"matches": []}
     idx.describe_index_stats.side_effect = Exception("boom")
-    monkeypatch.setattr(be, "get_index", lambda: idx)
+    mocker.patch.object(be, "get_index", return_value=idx)
 
     resp = client.post(
         "/search",
